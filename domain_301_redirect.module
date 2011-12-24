@@ -57,14 +57,17 @@ function front_page_permission() {
  * Implementation hook_init().
  */
 function domain_301_redirect_init() {
-  $domain_301_redirect_enabled = variable_get('domain_301_redirect_enabled', false);
-  $domain_301_redirect_domain = variable_get('domain_301_redirect_domain', '');
-  if (!preg_match('|^https?://|', $domain_301_redirect_domain)) {
-    $domain_301_redirect_domain = 'http://' . $domain_301_redirect_domain;
-  }
-  $parsed_domain = parse_url($domain_301_redirect_domain, PHP_URL_HOST);
-  if ($domain_301_redirect_enabled && !empty($domain_301_redirect_domain) && $parsed_domain != $_SERVER['HTTP_HOST'] && !user_access('bypass domain 301 redirect')) {
-    drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
+  // Don't redirect when using drush
+  if (!drupal_is_cli()) {
+    $domain_301_redirect_enabled = variable_get('domain_301_redirect_enabled', false);
+    $domain_301_redirect_domain = variable_get('domain_301_redirect_domain', '');
+    if (!preg_match('|^https?://|', $domain_301_redirect_domain)) {
+      $domain_301_redirect_domain = 'http://' . $domain_301_redirect_domain;
+    }
+    $parsed_domain = parse_url($domain_301_redirect_domain, PHP_URL_HOST);
+    if ($domain_301_redirect_enabled && !empty($domain_301_redirect_domain) && $parsed_domain != $_SERVER['HTTP_HOST'] && !user_access('bypass domain 301 redirect')) {
+      drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
+    }
   }
 }
 
