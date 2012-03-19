@@ -44,7 +44,7 @@ function domain_301_redirect_menu() {
 /**
  * Implements hook_permission().
  */
-function front_page_permission() {
+function domain_301_redirect_permission() {
   return array(
       'bypass domain 301 redirect' => array(
           'title' => t('Bypass domain 301 redirect'),
