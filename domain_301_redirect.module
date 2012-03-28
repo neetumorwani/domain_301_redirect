@@ -61,14 +61,56 @@ function domain_301_redirect_init() {
   if (!drupal_is_cli()) {
     $domain_301_redirect_enabled = variable_get('domain_301_redirect_enabled', false);
     $domain_301_redirect_domain = variable_get('domain_301_redirect_domain', '');
-    if (!preg_match('|^https?://|', $domain_301_redirect_domain)) {
-      $domain_301_redirect_domain = 'http://' . $domain_301_redirect_domain;
-    }
-    $parsed_domain = parse_url($domain_301_redirect_domain, PHP_URL_HOST);
-    if ($domain_301_redirect_enabled && !empty($domain_301_redirect_domain) && $parsed_domain != $_SERVER['HTTP_HOST'] && !user_access('bypass domain 301 redirect')) {
-      drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
+    // If redirection is enabled and a redirect domain is configured, proceed.
+    if ($domain_301_redirect_enabled && !empty($domain_301_redirect_domain)) {
+      if (!preg_match('|^https?://|', $domain_301_redirect_domain)) {
+        $domain_301_redirect_domain = 'http://' . $domain_301_redirect_domain;
+      }
+      $domain_parts = parse_url($domain_301_redirect_domain);
+      $parsed_domain = $domain_parts['host'];
+      $parsed_domain .= !empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '';
+      // If we're not on the same host, the user has access and this page isn't
+      // an exception, redirect.
+      if ($parsed_domain != $_SERVER['HTTP_HOST'] && !user_access('bypass domain 301 redirect') && domain_301_redirect_may_redirect()) {
+        drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
+      }
     }
   }
+}
+
+/**
+ * Determine if a page is configured to redirect.
+ * 
+ * Uses logic copied from block.module to handle either all pages except those listed
+ * or all pages listed.
+ */
+function domain_301_redirect_may_redirect() {
+  $applicability = (int) variable_get('domain_301_redirect_applicability');
+  if ($pages = trim((string) variable_get('domain_301_redirect_pages'))) {
+    // Convert path to lowercase. This allows comparison of the same path
+    // with different case. Ex: /Page, /page, /PAGE.
+    $pages = drupal_strtolower($pages);
+    // Convert the Drupal path to lowercase
+    $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+    // Compare the lowercase internal and lowercase path alias (if any).
+    $page_match = drupal_match_path($path, $pages);
+    if ($path != $_GET['q']) {
+      $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
+    }
+    // When $applicability has a value of 0 (BLOCK_VISIBILITY_NOTLISTED),
+    // the redirect is applied on all pages except those listed in $pages.
+    // When set to 1 (BLOCK_VISIBILITY_LISTED), it is applied only on those
+    // pages listed in $pages.
+    $page_match = !($applicability xor $page_match);
+  }
+  elseif ($applicability == BLOCK_VISIBILITY_LISTED) {
+    $page_match = FALSE;
+  }
+  else {
+    $page_match = TRUE;
+  }
+  
+  return $page_match;
 }
 
 /**
