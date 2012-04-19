@@ -71,7 +71,7 @@ function domain_301_redirect_init() {
       $parsed_domain .= !empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '';
       // If we're not on the same host, the user has access and this page isn't
       // an exception, redirect.
-      if ($parsed_domain != $_SERVER['HTTP_HOST'] && !user_access('bypass domain 301 redirect') && domain_301_redirect_may_redirect()) {
+      if (($parsed_domain != $_SERVER['HTTP_HOST']) && !user_access('bypass domain 301 redirect') && domain_301_redirect_may_redirect() && !domain_301_redirect_global_exclude()) {
         drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
       }
     }
@@ -110,6 +110,34 @@ function domain_301_redirect_may_redirect() {
     $page_match = TRUE;
   }
   
+  return $page_match;
+}
+
+/**
+ * Check if the current path has been globally excluded from redirects.
+ *
+ * @return
+ *   TRUE if excluded, otherwise FALSE.
+ */
+function domain_301_redirect_global_exclude() {
+  $cid = 'domain_301_redirect:global_exclude';
+  if ($cache = cache_get($cid)) {
+    $exclusions = $cache->data;
+  }
+  else {
+    $exclusions = module_invoke_all('domain_301_redirect_exclude');
+    drupal_alter('domain_301_redirect_exclude', $exclusions);
+    // We need these as a \n-separated string for drupal_match_path.
+    $exclusions = drupal_strtolower(implode("\n", array_map('trim', $exclusions)));
+    cache_set($cid, $exclusions);
+  }
+  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+  // Compare the lowercase internal and lowercase path alias (if any).
+  $page_match = drupal_match_path($path, $exclusions);
+  if ($path != $_GET['q']) {
+    $page_match = $page_match || drupal_match_path($_GET['q'], $exclusions);
+  }
+
   return $page_match;
 }
 
