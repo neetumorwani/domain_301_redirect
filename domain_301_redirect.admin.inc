@@ -9,6 +9,16 @@
  * Admin form for configuring Domain 301 Redirect.
  */
 function domain_301_redirect_admin_form($form_state) {
+  $disabled_by_check = variable_get('domain_301_redirect_disabled_by_check', false);
+  $enabled = variable_get('domain_301_redirect_enabled', 0);
+
+  // Warn the user if the redirect was disabled by cron.
+  if (!$enabled && $disabled_by_check) {
+    $domain = variable_get('domain_301_redirect_domain', '');
+    $last_checked = variable_get('domain_301_redirect_last_checked', 0);
+    drupal_set_message(t('Redirects have been disabled by cron because the domain was not available at: %date.', array('%date' => format_date($last_checked))), 'warning');
+  }
+
   $form['domain_301_redirect_enabled'] = array(
       '#type' => 'radios',
       '#title' => t('Status'),
@@ -28,6 +38,19 @@ function domain_301_redirect_admin_form($form_state) {
       '#description' => t('This option selects the period between domain validation checks. If the Domain no longer points to this site, Domain 301 Redirection will be disabled.'),
       '#options' => array(0 => t('Disabled'), 3600 => t('1 hour'), 7200 => t('2 hours'), 10800 => t('3 hours'), 21600 => t('6 hours'), 43200 => t('12 hours'), 86400 => t('1 day')),
       '#default_value' => variable_get('domain_301_redirect_check_period', 60 * 60 * 3), // default of 3 horus
+  );
+  $form['domain_301_redirect_domain_check_retries'] = array(
+      '#type' => 'select',
+      '#title' => t('Domain retries'),
+      '#description' => t('Number of times to check domain availability before disabling redirects.'),
+      '#options' => array(1 => 1, 2 => 2, 3 => 3),
+      '#default_value' => variable_get('domain_301_redirect_domain_check_retries', 3),
+  );
+  $form['domain_301_redirect_domain_check_reenable'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Re-enable domain redirection'),
+      '#description' => t('Turn domain redirection on when the domain becomes available.'),
+      '#default_value' => variable_get('domain_301_redirect_domain_check_reenable', true),
   );
 
   // Per-path configuration settings to apply the redirect to specific paths.
@@ -82,6 +105,11 @@ function domain_301_redirect_admin_form_validate(&$form, &$form_state) {
 
       if (!domain_301_redirect_check_domain($domain)) {
         form_set_error('domain_301_redirect_enabled', 'Domain 301 redirection can not be enabled as the domain you set does not currently point to this site.');
+      }
+      else {
+        // Clean up if someone is manually disabling. We don't want the system to
+        // re-enable if the disabling was via the admin form.
+        variable_set('domain_301_redirect_disabled_by_check', false);
       }
 
       if (domain_301_redirect_check_loop($domain)) {
