@@ -2,11 +2,11 @@
 
 /**
  * @file
- *   This module allows you to 301 redirect all domains to one specific domain.
+ * This module allows you to 301 redirect all domains to one specific domain.
  */
 
 /**
- * Implementation hook_help().
+ * Implements hook_help().
  */
 function domain_301_redirect_help($path, $arg) {
   switch ($path) {
@@ -22,21 +22,21 @@ function domain_301_redirect_help($path, $arg) {
 function domain_301_redirect_menu() {
   $items = array();
   $items['admin/config/search/domain_301_redirect'] = array(
-      'title' => 'Domain 301 Redirect',
-      'description' => 'Manage domain 301 redirection.',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('domain_301_redirect_admin_form'),
-      'access callback' => 'user_access',
-      'access arguments' => array('administer site configuration'),
-      'file' => 'domain_301_redirect.admin.inc',
-      'type' => MENU_NORMAL_ITEM,
+    'title' => 'Domain 301 Redirect',
+    'description' => 'Manage domain 301 redirection.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('domain_301_redirect_admin_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer site configuration'),
+    'file' => 'domain_301_redirect.admin.inc',
+    'type' => MENU_NORMAL_ITEM,
   );
   $items['domain_301_redirect_check'] = array(
-      'title' => 'Domain 301 Redirect Check',
-      'description' => 'Checks that the main domain listed actually points to the same site.',
-      'page callback' => 'domain_301_redirect_check',
-      'access callback' => TRUE,
-      'type' => MENU_CALLBACK,
+    'title' => 'Domain 301 Redirect Check',
+    'description' => 'Checks that the main domain listed actually points to the same site.',
+    'page callback' => 'domain_301_redirect_check',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
   );
   return $items;
 }
@@ -46,20 +46,20 @@ function domain_301_redirect_menu() {
  */
 function domain_301_redirect_permission() {
   return array(
-      'bypass domain 301 redirect' => array(
-          'title' => t('Bypass domain 301 redirect'),
-          'description' => t('If this permission is set, the user will not be 301 redirected if the domain does not match the main domain.'),
-      ),
+    'bypass domain 301 redirect' => array(
+      'title' => t('Bypass domain 301 redirect'),
+      'description' => t('If this permission is set, the user will not be 301 redirected if the domain does not match the main domain.'),
+    ),
   );
 }
 
 /**
- * Implementation hook_init().
+ * Implements hook_init().
  */
 function domain_301_redirect_init() {
   // Don't redirect when using drush
   if (!drupal_is_cli()) {
-    $domain_301_redirect_enabled = variable_get('domain_301_redirect_enabled', false);
+    $domain_301_redirect_enabled = variable_get('domain_301_redirect_enabled', FALSE);
     $domain_301_redirect_domain = variable_get('domain_301_redirect_domain', '');
     // If redirection is enabled and a redirect domain is configured, proceed.
     if ($domain_301_redirect_enabled && !empty($domain_301_redirect_domain)) {
@@ -79,10 +79,10 @@ function domain_301_redirect_init() {
 }
 
 /**
- * Determine if a page is configured to redirect.
- * 
- * Uses logic copied from block.module to handle either all pages except those listed
- * or all pages listed.
+ * Determines if a page is configured to redirect.
+ *
+ * Uses logic copied from block.module to handle either all pages except those
+ * listed or all pages listed.
  */
 function domain_301_redirect_may_redirect() {
   $applicability = (int) variable_get('domain_301_redirect_applicability');
@@ -90,7 +90,7 @@ function domain_301_redirect_may_redirect() {
     // Convert path to lowercase. This allows comparison of the same path
     // with different case. Ex: /Page, /page, /PAGE.
     $pages = drupal_strtolower($pages);
-    // Convert the Drupal path to lowercase
+    // Convert the Drupal path to lowercase.
     $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
     // Compare the lowercase internal and lowercase path alias (if any).
     $page_match = drupal_match_path($path, $pages);
@@ -109,14 +109,14 @@ function domain_301_redirect_may_redirect() {
   else {
     $page_match = TRUE;
   }
-  
+
   return $page_match;
 }
 
 /**
- * Check if the current path has been globally excluded from redirects.
+ * Checks if the current path has been globally excluded from redirects.
  *
- * @return
+ * @return bool
  *   TRUE if excluded, otherwise FALSE.
  */
 function domain_301_redirect_global_exclude() {
@@ -142,17 +142,18 @@ function domain_301_redirect_global_exclude() {
 }
 
 /**
- * Implementation hook_cron().
+ * Implements hook_cron().
  */
 function domain_301_redirect_cron() {
   $check_period = variable_get('domain_301_redirect_check_period', 60 * 60 * 3);
   $last_checked = variable_get('domain_301_redirect_last_checked', 0);
-  $enabled = variable_get('domain_301_redirect_enabled', false);
-  $reenable = variable_get('domain_301_redirect_check_reenable', true);
-  $disabled_by_check = variable_get('domain_301_redirect_disabled_by_check', false);
+  $enabled = variable_get('domain_301_redirect_enabled', FALSE);
+  $reenable = variable_get('domain_301_redirect_check_reenable', TRUE);
+  $disabled_by_check = variable_get('domain_301_redirect_disabled_by_check', FALSE);
 
-  // If the redirect is enabled (or has been previously disabled) and we are checking for domain
-  // availability on cron, then attempt to request the test url using the redirect domain.
+  // If the redirect is enabled (or has been previously disabled) and we are
+  // checking for domain availability on cron, then attempt to request the test
+  // url using the redirect domain.
   if (($enabled || ($disabled_by_check && $reenable)) && !empty($check_period) && $last_checked < time() - $check_period) {
     $domain = variable_get('domain_301_redirect_domain', '');
     if (!preg_match('|^https?://|', $domain)) {
@@ -162,7 +163,7 @@ function domain_301_redirect_cron() {
     $domain = $domain_parts['scheme'] . '://' . $domain_parts['host'];
     if (!domain_301_redirect_check_domain($domain)) {
       variable_set('domain_301_redirect_enabled', 0);
-      variable_set('domain_301_redirect_disabled_by_check', true);
+      variable_set('domain_301_redirect_disabled_by_check', TRUE);
       watchdog('Domain 301 Redirect', 'The domain %domain no longer points to this site. Domain 301 redirection was disabled.', array('%domain' => $domain), WATCHDOG_ERROR);
     }
     else {
@@ -170,7 +171,7 @@ function domain_301_redirect_cron() {
       // If the redirect was disabled by cron, and it has now passed, re-enable it.
       if (!$enabled && $reenable && $disabled_by_check) {
         variable_set('domain_301_redirect_enabled', 1);
-        variable_set('domain_301_redirect_disabled_by_check', false);
+        variable_set('domain_301_redirect_disabled_by_check', FALSE);
         watchdog('Domain 301 Redirect', 'The domain %domain has become available again. Domain 301 redirection was re-enabled.', array('%domain' => $domain), WATCHDOG_ERROR);
       }
     }
@@ -179,16 +180,13 @@ function domain_301_redirect_cron() {
 }
 
 /**
- * Check if a domain actually points to this site.
+ * Checks if a domain actually points to this site.
  *
- * This function checks that the main domain actually points to this site.
- *
- * @param $domain
+ * @param string $domain
  *   The domain to be checked.
- * 
- * @return
- *   Returns true if the domain passes the check. False otherwise.
- * 
+ *
+ * @return bool
+ *   Returns TRUE if the domain passes the check. FALSE otherwise.
  */
 function domain_301_redirect_check_domain($domain) {
   if (!empty($domain)) {
@@ -214,8 +212,8 @@ function domain_301_redirect_check_domain($domain) {
 /**
  * Menu callback item domain_301_redirect_check().
  *
- * This callback prints out a validation hash string and then terminates the script.
- *
+ * This callback prints out a validation hash string and then terminates the
+ * script.
  */
 function domain_301_redirect_check() {
   global $conf;

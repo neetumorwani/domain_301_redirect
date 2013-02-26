@@ -1,12 +1,12 @@
 Introduction
 ================
 
-The Domain 301 Redirect module allows sites to 301 redirect to a domain that is 
-marked as the main domain. This means you can have all subdomains and other 
-domains 301 redirect to a domain that you choose as the main domain. 
+The Domain 301 Redirect module allows sites to 301 redirect to a domain that is
+marked as the main domain. This means you can have all subdomains and other
+domains 301 redirect to a domain that you choose as the main domain.
 This provides great SEO benefit.
 
-For all bugs, feature requests or support requests please use the Domain 301 
+For all bugs, feature requests or support requests please use the Domain 301
 Redirect issue queue at http://drupal.org/project/issues/domain_301_redirect
 
 
@@ -28,5 +28,5 @@ Installation
 
 2. Go to Administer -> Config -> Search and metadata -> Domain 301 Redirect.
 
-3. Enter the primary domain into the textfield, change the status to enabled and 
+3. Enter the primary domain into the textfield, change the status to enabled and
     enter the checking period you wish to have.

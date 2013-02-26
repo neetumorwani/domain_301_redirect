@@ -2,7 +2,7 @@
 
 /**
  * @file
- *   Administrative pages for the Domain 301 Redirect module.
+ * Administrative pages for the Domain 301 Redirect module.
  */
 
 /**
@@ -20,24 +20,35 @@ function domain_301_redirect_admin_form($form_state) {
   }
 
   $form['domain_301_redirect_enabled'] = array(
-      '#type' => 'radios',
-      '#title' => t('Status'),
-      '#description' => t('Enable this setting to start 301 redirects to the domain below for all other domains.'),
-      '#options' => array(1 => t('Enabled'), 0 => t('Disabled')),
-      '#default_value' => variable_get('domain_301_redirect_enabled', 0),
+    '#type' => 'radios',
+    '#title' => t('Status'),
+    '#description' => t('Enable this setting to start 301 redirects to the domain below for all other domains.'),
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+    '#default_value' => variable_get('domain_301_redirect_enabled', 0),
   );
   $form['domain_301_redirect_domain'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Domain'),
-      '#description' => t('This is the domain that all other domains that point to this site will be 301 redirected to. This value should also include the scheme (http or https). E.g. http://www.testsite.com'),
-      '#default_value' => variable_get('domain_301_redirect_domain', ''),
+    '#type' => 'textfield',
+    '#title' => t('Domain'),
+    '#description' => t('This is the domain that all other domains that point to this site will be 301 redirected to. This value should also include the scheme (http or https). E.g. http://www.testsite.com'),
+    '#default_value' => variable_get('domain_301_redirect_domain', ''),
   );
   $form['domain_301_redirect_check_period'] = array(
-      '#type' => 'select',
-      '#title' => t('Domain Check'),
-      '#description' => t('This option selects the period between domain validation checks. If the Domain no longer points to this site, Domain 301 Redirection will be disabled.'),
-      '#options' => array(0 => t('Disabled'), 3600 => t('1 hour'), 7200 => t('2 hours'), 10800 => t('3 hours'), 21600 => t('6 hours'), 43200 => t('12 hours'), 86400 => t('1 day')),
-      '#default_value' => variable_get('domain_301_redirect_check_period', 60 * 60 * 3), // default of 3 horus
+    '#type' => 'select',
+    '#title' => t('Domain Check'),
+    '#description' => t('This option selects the period between domain validation checks. If the Domain no longer points to this site, Domain 301 Redirection will be disabled.'),
+    '#options' => array(
+      0 => t('Disabled'),
+      3600 => t('1 hour'),
+      7200 => t('2 hours'),
+      10800 => t('3 hours'),
+      21600 => t('6 hours'),
+      43200 => t('12 hours'),
+      86400 => t('1 day'),
+    ),
+    '#default_value' => variable_get('domain_301_redirect_check_period', 60 * 60 * 3), // Defaults to 3 hours.
   );
   $form['domain_301_redirect_domain_check_retries'] = array(
       '#type' => 'select',
@@ -55,11 +66,11 @@ function domain_301_redirect_admin_form($form_state) {
 
   // Per-path configuration settings to apply the redirect to specific paths.
   $form['applicability']['path'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Pages'),
-      '#collapsible' => TRUE,
-      '#collapsed' => FALSE,
-      '#weight' => 0,
+    '#type' => 'fieldset',
+    '#title' => t('Pages'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#weight' => 0,
   );
 
   $options = array(
@@ -120,22 +131,21 @@ function domain_301_redirect_admin_form_validate(&$form, &$form_state) {
 }
 
 /**
- * Check to see if a specified domain causes a redirect loop back to the site including
- * multiple levels of redirects.
+ * Checks for multi level redirect loops with a specified domain.
  *
- * @param $domain
+ * @param string $domain
  *   Domain name to test.
  *
- * @return
- *   TRUE if a redirect loop was detected, otherwise false.
+ * @return bool
+ *   TRUE if a redirect loop was detected, otherwise FALSE.
  */
 function domain_301_redirect_check_loop($domain) {
-  // get host from configured domain
+  // Get host from configured domain.
   $redirect_host = drupal_strtolower(parse_url($domain, PHP_URL_HOST));
   $host = drupal_strtolower(parse_url($GLOBALS['base_url'], PHP_URL_HOST));
 
-  // Redirecting back to this site actually is actively ignored in hook_init, so it
-  // makes no sense to allow users to set this as a value.
+  // Redirecting back to this site actually is actively ignored in hook_init,
+  // so it makes no sense to allow users to set this as a value.
   if ($redirect_host == $host) {
     return TRUE;
   }
@@ -144,24 +154,24 @@ function domain_301_redirect_check_loop($domain) {
   $redirects_to_check = variable_get('domain_301_redirect_loop_max_redirects', 3);
   $checked = 0;
 
-  // Make a request to the domain that is being configured, following a configured
-  // number of redirects.
-  // This has to be done individually, because if checking all 3 levels at once,
-  // we might happen to get the wrong one back (if the redirect loop has multiple levels).
+  // Make a request to the domain that is being configured, following a
+  // configured number of redirects. This has to be done individually, because
+  // if checking all 3 levels at once, we might happen to get the wrong one back
+  // (if the redirect loop has multiple levels).
   do {
     $response = drupal_http_request($domain, array('max_redirects' => 0, 'method' => 'HEAD'));
     if (!empty($response->redirect_url)) {
       // Request target for the next request loop.
       $domain = $response->redirect_url;
-      // check if any host names match the redirect host name.
+      // Check if any host names match the redirect host name.
       $location_host = drupal_strtolower(parse_url($response->redirect_url, PHP_URL_HOST));
       if ($redirect_host == $location_host || $host == $location_host) {
         $redirect_loop = TRUE;
       }
     }
     $checked++;
-    // don't check the redirect code, as it's possible there may be another redirect
-    // service in operation that does not use 301.
+    // Don't check the redirect code, as it's possible there may be another
+    // redirect service in operation that does not use 301.
   } while (!$redirect_loop && !empty($response->redirect_url) && $checked < $redirects_to_check);
 
   return $redirect_loop;
