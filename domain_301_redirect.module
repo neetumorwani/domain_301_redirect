@@ -72,7 +72,7 @@ function domain_301_redirect_init() {
       // If we're not on the same host, the user has access and this page isn't
       // an exception, redirect.
       if (($parsed_domain != $_SERVER['HTTP_HOST']) && !user_access('bypass domain 301 redirect') && domain_301_redirect_may_redirect() && !domain_301_redirect_global_exclude()) {
-        drupal_goto($domain_301_redirect_domain . $_SERVER['REQUEST_URI'], array(), 301);
+        drupal_goto($domain_301_redirect_domain . request_uri(), array(), 301);
       }
     }
   }
@@ -90,12 +90,13 @@ function domain_301_redirect_may_redirect() {
     // Convert path to lowercase. This allows comparison of the same path
     // with different case. Ex: /Page, /page, /PAGE.
     $pages = drupal_strtolower($pages);
-    // Convert the Drupal path to lowercase.
-    $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+    // Convert the Drupal path to lowercase and get the aliased version of it.
+    $current_path = drupal_strtolower(current_path());
+    $aliased_path = drupal_strtolower(drupal_get_path_alias($current_path));
     // Compare the lowercase internal and lowercase path alias (if any).
-    $page_match = drupal_match_path($path, $pages);
-    if ($path != $_GET['q']) {
-      $page_match = $page_match || drupal_match_path($_GET['q'], $pages);
+    $page_match = drupal_match_path($aliased_path, $pages);
+    if ($aliased_path != $current_path) {
+      $page_match = $page_match || drupal_match_path($current_path, $pages);
     }
     // When $applicability has a value of 0 (BLOCK_VISIBILITY_NOTLISTED),
     // the redirect is applied on all pages except those listed in $pages.
@@ -131,11 +132,13 @@ function domain_301_redirect_global_exclude() {
     $exclusions = drupal_strtolower(implode("\n", array_map('trim', $exclusions)));
     cache_set($cid, $exclusions);
   }
-  $path = drupal_strtolower(drupal_get_path_alias($_GET['q']));
+  // Convert the Drupal path to lowercase and get the aliased version of it.
+  $current_path = drupal_strtolower(current_path());
+  $aliased_path = drupal_strtolower(drupal_get_path_alias($current_path));
   // Compare the lowercase internal and lowercase path alias (if any).
-  $page_match = drupal_match_path($path, $exclusions);
-  if ($path != $_GET['q']) {
-    $page_match = $page_match || drupal_match_path($_GET['q'], $exclusions);
+  $page_match = drupal_match_path($aliased_path, $exclusions);
+  if ($aliased_path != $current_path) {
+    $page_match = $page_match || drupal_match_path($current_path, $exclusions);
   }
 
   return $page_match;
@@ -194,9 +197,9 @@ function domain_301_redirect_check_domain($domain) {
 
     // Try to contact the redirect domain, if this fails, retry N times after a pause.
     for ($i = 1; $i <= $retries; $i++) {
-      $hash = md5(time());
-      variable_set('domain_301_redirect_domain_check', $hash);
-      $result = drupal_http_request($domain . '/domain_301_redirect_check');
+      $time = time();
+      $hash = drupal_hmac_base64('domain_301_redirect_check_domain', $time . drupal_get_private_key() . drupal_get_hash_salt());
+      $result = drupal_http_request($domain . '/domain_301_redirect_check/' . $time);
       if (!empty($result) && $result->data == $hash) {
         return TRUE;
       }
@@ -215,9 +218,9 @@ function domain_301_redirect_check_domain($domain) {
  * This callback prints out a validation hash string and then terminates the
  * script.
  */
-function domain_301_redirect_check() {
+function domain_301_redirect_check($time = NULL) {
   global $conf;
   $conf['cache'] = FALSE;
-  echo variable_get('domain_301_redirect_domain_check', '');
+  echo $time && time() - $time < 60 ? drupal_hmac_base64('domain_301_redirect_check_domain', $time . drupal_get_private_key() . drupal_get_hash_salt()) : '';
   exit;
 }

@@ -102,20 +102,20 @@ function domain_301_redirect_admin_form($form_state) {
  */
 function domain_301_redirect_admin_form_validate(&$form, &$form_state) {
   if (!empty($form_state['values']['domain_301_redirect_enabled'])) {
-    if (empty($form_state['values']['domain_301_redirect_domain'])) {
-      form_set_error('domain_301_redirect_enabled', 'Domain 301 redirection can not be enabled if no domain is set.');
+    $domain = trim($form_state['values']['domain_301_redirect_domain']);
+    if (!preg_match('|^https?://|', $domain)) {
+      $domain = 'http://' . $domain;
+    }
+    if (!valid_url($domain, TRUE)) {
+      form_set_error('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled if no valid domain is set.'));
     }
     else {
-      $domain = $form_state['values']['domain_301_redirect_domain'];
-      if (!preg_match('|^https?://|', $domain)) {
-        $domain = 'http://' . $domain;
-      }
       $domain_parts = parse_url($domain);
       $domain = $domain_parts['scheme'] . '://' . $domain_parts['host'] . (!empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '');
       form_set_value($form['domain_301_redirect_domain'], $domain, $form_state);
 
       if (!domain_301_redirect_check_domain($domain)) {
-        form_set_error('domain_301_redirect_enabled', 'Domain 301 redirection can not be enabled as the domain you set does not currently point to this site.');
+        form_set_error('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled as the domain you set does not currently point to this site.'));
       }
       else {
         // Clean up if someone is manually disabling. We don't want the system to
@@ -144,10 +144,13 @@ function domain_301_redirect_check_loop($domain) {
   $redirect_host = drupal_strtolower(parse_url($domain, PHP_URL_HOST));
   $host = drupal_strtolower(parse_url($GLOBALS['base_url'], PHP_URL_HOST));
 
-  // Redirecting back to this site actually is actively ignored in hook_init,
-  // so it makes no sense to allow users to set this as a value.
+  // Redirecting back to this site actually is actively ignored in hook_init, so
+  // it makes no sense to allow users to set this as a value. On the other hand
+  // when the admin is on the redirected domain he should still be able to alter
+  // other settings without first disabling redirection. So let's just accept
+  // the current host.
   if ($redirect_host == $host) {
-    return TRUE;
+    return FALSE;
   }
 
   $redirect_loop = FALSE;
