@@ -5,3 +5,5 @@ core = 7.x
 files[] = domain_301_redirect.admin.inc
 files[] = domain_301_redirect.install
 files[] = domain_301_redirect.module
+
+configure = admin/config/search/domain_301_redirect
