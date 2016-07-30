@@ -34,7 +34,7 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
   /**
    * This method is called whenever the kernel.request event is
    * dispatched.
-   *
+   * @todo remove hardcoded URL and create a configuration form to manage redirection
    * @param GetResponseEvent $event
    */
   public function requestHandler(GetResponseEvent $event) {
