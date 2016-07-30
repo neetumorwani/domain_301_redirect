@@ -1,0 +1,7 @@
+services:
+  domain_301_redirect.event_subscriber:
+    class: Drupal\domain_301_redirect\EventSubscriber\DomainRedirectEventSubscriber
+    arguments: []
+    tags:
+      - { name: event_subscriber }
+
