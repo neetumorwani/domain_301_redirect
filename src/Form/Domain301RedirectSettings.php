@@ -10,6 +10,7 @@ namespace Drupal\domain_301_redirect\Form;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\Component\Utility\UrlHelper;
 
 class Domain301RedirectSettings extends ConfigFormBase {
   public function getFormId() {
@@ -113,40 +114,40 @@ class Domain301RedirectSettings extends ConfigFormBase {
 
     return parent::buildForm($form, $form_state);
   }
-  /**
-   * Todo
-  */
-  // public function validateForm(array &$form, FormStateInterface $form_state) {
-  // 	$userInputValues = $form_state->getUserInput();
-  // 	dsm($userInputValues);
-  // 	if (!empty($userInputValues['domain_301_redirect_enabled'])) {
-	 //    $domain = trim($userInputValues['domain_301_redirect_domain']);
-	 //    if (!preg_match('|^https?://|', $domain)) {
-	 //      $domain = 'http://' . $domain;
-	 //    }
-	 //    if (!valid_url($domain, TRUE)) {
-	 //      form_set_error('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled if no valid domain is set.'));
-	 //    }
-	 //    else {
-	 //      $domain_parts = parse_url($domain);
-	 //      $domain = $domain_parts['scheme'] . '://' . $domain_parts['host'] . (!empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '');
-	 //      form_set_value($form['domain_301_redirect_domain'], $domain, $form_state);
 
-	 //      if (!domain_301_redirect_check_domain($domain)) {
-	 //        form_set_error('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled as the domain you set does not currently point to this site.'));
-	 //      }
-	 //      else {
-	 //        // Clean up if someone is manually disabling. We don't want the system to
-	 //        // re-enable if the disabling was via the admin form.
-	 //        variable_set('domain_301_redirect_disabled_by_check', false);
-	 //      }
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $config = \Drupal::config('domain_301_redirect.settings');
+    $userInputValues = $form_state->getUserInput();
+    if (!empty($userInputValues['domain_301_redirect_enabled'])) {
+      $domain = trim($userInputValues['domain_301_redirect_domain']);
+      if (!preg_match('|^https?://|', $domain)) {
+        $domain = 'http://' . $domain;
+      }
+      if (!UrlHelper::isValid($domain, TRUE)) {
+        $form_state->setErrorByName('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled if no valid domain is set.'));
+      }
+      else {
+        $domain_parts = parse_url($domain);
+        $domain = $domain_parts['scheme'] . '://' . $domain_parts['host'] . (!empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '');
+        $form_state->setValueForElement($form['domain_301_redirect_domain'], $domain);
+        $service = \Drupal::service('domain_301_redirect.manager');
 
-	 //      if (domain_301_redirect_check_loop($domain)) {
-	 //        form_set_error('domain_301_redirect_domain', t('The domain cannot be set, as it causes a redirect loop (within @num redirects).', array('@num' => variable_get('domain_301_redirect_loop_max_redirects', 3))));
-	 //      }
-	 //    }
-	 //  }
-  // }
+        if (!$service->domain_301_redirect_check_loop($domain)) {
+          $form_state->setErrorByName('domain_301_redirect_enabled', t('Domain 301 redirection can not be enabled as the domain you set does not currently point to this site.'));
+        }
+        else {
+          // Clean up if someone is manually disabling. We don't want the system to
+          // re-enable if the disabling was via the admin form.
+          Drupal::state()->set('domain_301_redirect_disabled_by_check', TRUE);
+        }
+
+        if ($service->domain_301_redirect_check_loop($domain)){
+          $form_state->setErrorByName('domain_301_redirect_domain', t('The domain cannot be set, as it causes a redirect loop (within @num redirects).', array('@num' => $config->get('domain_301_redirect_loop_max_redirects'))));
+        }
+      }
+    }
+  }
+
   public function submitForm(array &$form, FormStateInterface $form_state) {
 
     $userInputValues = $form_state->getUserInput();
@@ -158,6 +159,7 @@ class Domain301RedirectSettings extends ConfigFormBase {
       ->set('domain_301_redirect_domain_check_reenable', $userInputValues['domain_301_redirect_domain_check_reenable'])
       ->set('domain_301_redirect_applicability', $userInputValues['domain_301_redirect_applicability'])
       ->set('domain_301_redirect_pages', $userInputValues['domain_301_redirect_pages'])
+      ->set('domain_301_redirect_loop_max_redirects', $userInputValues['domain_301_redirect_loop_max_redirects'])
       ->save();
 
     parent::submitForm($form, $form_state);

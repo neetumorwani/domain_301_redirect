@@ -5,3 +5,7 @@ services:
     tags:
       - { name: event_subscriber }
 
+  domain_301_redirect.manager:
+    class: Drupal\domain_301_redirect\Domain301RedirectManager
+    tags:
+      - {name: domain_301_redirect_manager}
