@@ -45,17 +45,7 @@ function domain_301_redirect_help($route_name, RouteMatchInterface $route_match)
 //  return $items;
 //}
 
-/**
- * Implements hook_permission().
- */
-function domain_301_redirect_permission() {
-  return array(
-    'bypass domain 301 redirect' => array(
-      'title' => t('Bypass domain 301 redirect'),
-      'description' => t('If this permission is set, the user will not be 301 redirected if the domain does not match the main domain.'),
-    ),
-  );
-}
+
 
 /**
  * Implements hook_init().
