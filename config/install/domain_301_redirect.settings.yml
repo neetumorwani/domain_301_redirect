@@ -1,0 +1,7 @@
+domain_301_redirect_enabled: 0
+domain_301_redirect_check_period: 60 * 60 * 3
+domain_301_redirect_domain_check_retries: 3
+domain_301_redirect_domain_check_reenable: true
+domain_301_redirect_disabled_by_check: false
+domain_301_redirect_enabled: 0
+domain_301_redirect_last_checked: 0
