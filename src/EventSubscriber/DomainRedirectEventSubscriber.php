@@ -65,6 +65,9 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
    * This method is called whenever the kernel.request event is
    * dispatched.
    *
+   * @todo Needs a service which will handle the exclusion/inclusion of
+   * the mentioned path/page.
+   *
    * @param GetResponseEvent $event
    */
   public function requestHandler(GetResponseEvent $event) {
