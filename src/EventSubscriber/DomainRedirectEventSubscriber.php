@@ -59,14 +59,14 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
    */
   public function requestHandler(GetResponseEvent $event) {
     $domain_config = $this->configFactory->get('domain_301_redirect.settings')->getRawData();
-    //if ($domain_config['domain_301_redirect_enabled'] && $domain_config['domain_301_redirect_domain']) {
+    if ($domain_config['domain_301_redirect_enabled'] && $domain_config['domain_301_redirect_domain']) {
       if (!preg_match('|^https?://|', $domain_config['domain_301_redirect_domain'])) {
         $domain_config['domain_301_redirect_domain'] = 'http://' . $domain_config['domain_301_redirect_domain'];
       }
-      $port = $this->request->getPort();print_r($port);die("Fghfhg");
-      //$response = new RedirectResponse("http://www.google.com",301);
-      //$response->send();
-    //}
+      $port = $this->request->getPort();
+      $response = new RedirectResponse("http://www.google.com",301);
+      $response->send();
+    }
   }
 
 }
