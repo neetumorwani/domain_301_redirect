@@ -78,7 +78,7 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
 
     $domain_config = $this->configFactory->get('domain_301_redirect.settings')->getRawData();
     // If domain redirection is not enabled, then no need to process further.
-    if ($domain_config['domain_301_redirect_enabled']) {
+    if (!$domain_config['domain_301_redirect_enabled']) {
       return;
     }
 
