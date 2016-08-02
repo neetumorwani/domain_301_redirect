@@ -2,11 +2,12 @@
 
 namespace Drupal\domain_301_redirect\EventSubscriber;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-
-use Symfony\Component\EventDispatcher\Event;
 use Symfony\Component\HttpKernel\Event\GetResponseEvent;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\RequestStack;
+
 /**
  * Class DomainRedirectEventSubscriber.
  *
@@ -14,12 +15,31 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 class DomainRedirectEventSubscriber implements EventSubscriberInterface {
 
+  /**
+   * The config factory object.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
 
   /**
-   * Constructor.
+   * Current request.
+   *
+   * @var \Symfony\Component\HttpFoundation\Request
    */
-  public function __construct() {
+  protected $request;
 
+  /**
+   * DomainRedirectEventSubscriber constructor.
+   *
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   Config factory object.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
+   */
+  public function __construct(ConfigFactoryInterface $config_factory, RequestStack $request_stack) {
+    $this->configFactory = $config_factory;
+    $this->request = $request_stack->getCurrentRequest();
   }
 
   /**
@@ -38,8 +58,15 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
    * @param GetResponseEvent $event
    */
   public function requestHandler(GetResponseEvent $event) {
-     $response = new RedirectResponse("http://www.google.com",301);
-     $response->send();
+    $domain_config = $this->configFactory->get('domain_301_redirect.settings')->getRawData();
+    //if ($domain_config['domain_301_redirect_enabled'] && $domain_config['domain_301_redirect_domain']) {
+      if (!preg_match('|^https?://|', $domain_config['domain_301_redirect_domain'])) {
+        $domain_config['domain_301_redirect_domain'] = 'http://' . $domain_config['domain_301_redirect_domain'];
+      }
+      $port = $this->request->getPort();print_r($port);die("Fghfhg");
+      //$response = new RedirectResponse("http://www.google.com",301);
+      //$response->send();
+    //}
   }
 
 }

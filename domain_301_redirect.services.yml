@@ -1,7 +1,7 @@
 services:
   domain_301_redirect.event_subscriber:
     class: Drupal\domain_301_redirect\EventSubscriber\DomainRedirectEventSubscriber
-    arguments: []
+    arguments: ['@config.factory', '@request_stack']
     tags:
       - { name: event_subscriber }
 
