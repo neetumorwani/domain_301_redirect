@@ -76,16 +76,19 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    // Get config settings of domain_301_redirect module.
     $domain_config = $this->configFactory->get('domain_301_redirect.settings')->getRawData();
     // If domain redirection is not enabled, then no need to process further.
     if (!$domain_config['domain_301_redirect_enabled']) {
       return;
     }
 
+    // If domain doesn't contain http/https, then add those to domain.
     if (!preg_match('|^https?://|', $domain_config['domain_301_redirect_domain'])) {
       $domain_config['domain_301_redirect_domain'] = 'http://' . $domain_config['domain_301_redirect_domain'];
     }
 
+    // Parse the domain to get various settings like port.
     $domain_parts = parse_url($domain_config['domain_301_redirect_domain']);
     $parsed_domain = $domain_parts['host'];
     $parsed_domain .= !empty($domain_parts['port']) ? ':' . $domain_parts['port'] : '';
@@ -93,7 +96,8 @@ class DomainRedirectEventSubscriber implements EventSubscriberInterface {
     // If we're not on the same host, the user has access and this page isn't
     // an exception, redirect.
     if (($parsed_domain != $this->request->server->get('HTTP_HOST'))) {
-      $response = new RedirectResponse($domain_config['domain_301_redirect_domain'], 301);
+      $uri = $this->request->getRequestUri();
+      $response = new RedirectResponse($domain_config['domain_301_redirect_domain'] . $uri, 301);
       $response->send();
     }
   }
